@@ -1,4 +1,4 @@
-// Snack Detective By Devdarsh - Server-side Gemini AI Vision Server (Local Development)
+// Snack Detective By Devdarsh - Server-side Gemini AI Vision Server
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -12,16 +12,61 @@ const {
 const PORT = process.env.PORT || 8080;
 const ENV_FILE = path.join(__dirname, '.env');
 
-const MIME_TYPES = {
-  '.html': 'text/html; charset=UTF-8',
-  '.css': 'text/css; charset=UTF-8',
-  '.js': 'application/javascript; charset=UTF-8',
-  '.json': 'application/json',
-  '.jpg': 'image/jpeg',
-  '.jpeg': 'image/jpeg',
-  '.png': 'image/png',
-  '.svg': 'image/svg+xml',
-  '.ico': 'image/x-icon'
+// Pre-load static assets into memory with explicit static paths.
+// This guarantees that Vercel's Node File Tracer (@vercel/nft) bundles all frontend files into the lambda artifact.
+const STATIC_ASSETS = {
+  '/': {
+    content: fs.readFileSync(path.join(__dirname, 'index.html')),
+    type: 'text/html; charset=UTF-8'
+  },
+  '/index.html': {
+    content: fs.readFileSync(path.join(__dirname, 'index.html')),
+    type: 'text/html; charset=UTF-8'
+  },
+  '/manifest.json': {
+    content: fs.readFileSync(path.join(__dirname, 'manifest.json')),
+    type: 'application/json'
+  },
+  '/sw.js': {
+    content: fs.readFileSync(path.join(__dirname, 'sw.js')),
+    type: 'application/javascript; charset=UTF-8'
+  },
+  '/css/style.css': {
+    content: fs.readFileSync(path.join(__dirname, 'css', 'style.css')),
+    type: 'text/css; charset=UTF-8'
+  },
+  '/js/app.js': {
+    content: fs.readFileSync(path.join(__dirname, 'js', 'app.js')),
+    type: 'application/javascript; charset=UTF-8'
+  },
+  '/js/model.js': {
+    content: fs.readFileSync(path.join(__dirname, 'js', 'model.js')),
+    type: 'application/javascript; charset=UTF-8'
+  },
+  '/js/audio.js': {
+    content: fs.readFileSync(path.join(__dirname, 'js', 'audio.js')),
+    type: 'application/javascript; charset=UTF-8'
+  },
+  '/js/confetti.js': {
+    content: fs.readFileSync(path.join(__dirname, 'js', 'confetti.js')),
+    type: 'application/javascript; charset=UTF-8'
+  },
+  '/js/storage.js': {
+    content: fs.readFileSync(path.join(__dirname, 'js', 'storage.js')),
+    type: 'application/javascript; charset=UTF-8'
+  },
+  '/assets/detective_pip.jpg': {
+    content: fs.readFileSync(path.join(__dirname, 'assets', 'detective_pip.jpg')),
+    type: 'image/jpeg'
+  },
+  '/assets/sample_healthy.jpg': {
+    content: fs.readFileSync(path.join(__dirname, 'assets', 'sample_healthy.jpg')),
+    type: 'image/jpeg'
+  },
+  '/assets/sample_treat.jpg': {
+    content: fs.readFileSync(path.join(__dirname, 'assets', 'sample_treat.jpg')),
+    type: 'image/jpeg'
+  }
 };
 
 const server = http.createServer(async (req, res) => {
@@ -36,7 +81,7 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  const parsedUrl = new URL(req.url, `http://${req.headers.host}`);
+  const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const pathname = parsedUrl.pathname;
   const headerApiKey = req.headers['x-gemini-key'] || null;
 
@@ -61,10 +106,14 @@ const server = http.createServer(async (req, res) => {
         const { apiKey } = JSON.parse(body);
         if (apiKey) {
           const trimmed = apiKey.trim();
-          fs.writeFileSync(ENV_FILE, `# Snack Detective Server-side Configuration\nGEMINI_API_KEY=${trimmed}\n`);
+          try {
+            fs.writeFileSync(ENV_FILE, `# Snack Detective Server-side Configuration\nGEMINI_API_KEY=${trimmed}\n`);
+          } catch (writeErr) {
+            console.warn('Could not write to local .env (read-only environment):', writeErr.message);
+          }
           process.env.GEMINI_API_KEY = trimmed;
           res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ success: true, message: 'Primary Gemini key saved successfully to server (.env)' }));
+          res.end(JSON.stringify({ success: true, message: 'Gemini key updated successfully!' }));
         } else {
           res.writeHead(400, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ error: 'API key is required' }));
@@ -122,36 +171,31 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // Serve static files
-  let relativePath = pathname === '/' ? 'index.html' : pathname.replace(/^\//, '');
-  let filePath = path.join(__dirname, relativePath);
+  // Serve static files from memory cache (Zero-latency, 100% reliable on Vercel)
+  const asset = STATIC_ASSETS[pathname] || STATIC_ASSETS[pathname.replace(/\/$/, '')] || STATIC_ASSETS['/index.html'];
 
-  fs.stat(filePath, (err, stats) => {
-    if (err || !stats.isFile()) {
-      filePath = path.join(__dirname, 'index.html');
-    }
-
-    const ext = path.extname(filePath).toLowerCase();
-    const contentType = MIME_TYPES[ext] || 'application/octet-stream';
-
-    fs.readFile(filePath, (readErr, content) => {
-      if (readErr) {
-        res.writeHead(404, { 'Content-Type': 'text/plain' });
-        res.end('File Not Found');
-        return;
-      }
-      res.writeHead(200, {
-        'Content-Type': contentType,
-        'Cache-Control': 'no-cache, no-store, must-revalidate'
-      });
-      res.end(content);
+  if (asset) {
+    res.writeHead(200, {
+      'Content-Type': asset.type,
+      'Cache-Control': pathname === '/' || pathname.endsWith('.html') ? 'no-cache' : 'public, max-age=3600'
     });
-  });
+    res.end(asset.content);
+    return;
+  }
+
+  res.writeHead(404, { 'Content-Type': 'text/plain' });
+  res.end('File Not Found');
 });
 
-server.listen(PORT, () => {
-  const key = getServerApiKey();
-  console.log(`🔍 Snack Detective server running at http://localhost:${PORT}`);
-  console.log(`🤖 Primary Server-Side Gemini Key: ${key ? 'Configured (' + key.substring(0, 6) + '...)' : 'Not set in .env'}`);
-  console.log(`✨ BYOK (Bring Your Own Key) Support: Enabled via Settings & Headers`);
-});
+// Export server handler for serverless environments (Vercel / Lambda)
+module.exports = server;
+
+// Start listening if run directly (node server.js)
+if (require.main === module) {
+  server.listen(PORT, () => {
+    const key = getServerApiKey();
+    console.log(`🔍 Snack Detective server running at http://localhost:${PORT}`);
+    console.log(`🤖 Primary Server-Side Gemini Key: ${key ? 'Configured (' + key.substring(0, 6) + '...)' : 'Not set in .env'}`);
+    console.log(`✨ BYOK (Bring Your Own Key) Support: Enabled via Settings & Headers`);
+  });
+}
