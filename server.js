@@ -142,6 +142,18 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // Vercel Insights local stub (serves mock script and accepts events in local development)
+  if (pathname.startsWith('/_vercel/insights')) {
+    if (pathname.endsWith('.js')) {
+      res.writeHead(200, { 'Content-Type': 'application/javascript; charset=UTF-8' });
+      res.end('// Vercel Analytics local dev mock\nwindow.va=window.va||function(){(window.vaq=window.vaq||[]).push(arguments);};');
+    } else {
+      res.writeHead(204);
+      res.end();
+    }
+    return;
+  }
+
   // Serve static files from memory cache (Zero-latency, 100% reliable on Vercel)
   const asset = STATIC_ASSETS[pathname] || STATIC_ASSETS[pathname.replace(/\/$/, '')] || STATIC_ASSETS['/index.html'];
 

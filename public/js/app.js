@@ -518,7 +518,16 @@ class SnackDetectiveApp {
       tip: result.tip
     });
 
-    // 7. Display Result Screen with photoUrl guaranteed
+    // 7. Dispatch Vercel Analytics event
+    if (window.va) {
+      window.va('event', {
+        name: 'snack_scan',
+        verdict: result.verdict,
+        food: result.exactFood || snackName
+      });
+    }
+
+    // 8. Display Result Screen with photoUrl guaranteed
     this.renderResultScreen(result, outcome, snackName, photoUrl);
   }
 
@@ -621,6 +630,9 @@ class SnackDetectiveApp {
       );
       if (this.pipAnswerText) {
         this.pipAnswerText.textContent = answer;
+      }
+      if (window.va) {
+        window.va('event', { name: 'ask_pip', snack: this.currentSnackName || 'Snack' });
       }
       window.detectiveAudio.speak(answer);
     } catch (e) {
