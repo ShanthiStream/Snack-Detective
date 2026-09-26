@@ -141,8 +141,6 @@ class SnackDetectiveApp {
     this.byokApiKeyInput = document.getElementById('byok-api-key');
     this.btnSaveByokKey = document.getElementById('btn-save-byok-key');
     this.btnClearByokKey = document.getElementById('btn-clear-byok-key');
-    this.serverGeminiKeyInput = document.getElementById('server-gemini-key');
-    this.btnSaveServerKey = document.getElementById('btn-save-server-key');
   }
 
   bindEvents() {
@@ -335,36 +333,6 @@ class SnackDetectiveApp {
         window.detectiveAudio.playPop();
         this.updateModelStatusDisplay();
         alert('Reverted to Primary Server Key! 🚀');
-      });
-    }
-
-    // Update Server-Side Key in .env
-    if (this.btnSaveServerKey) {
-      this.btnSaveServerKey.addEventListener('click', async () => {
-        const key = this.serverGeminiKeyInput.value.trim();
-        if (!key) {
-          alert('Please enter a Gemini API key to save to server .env');
-          return;
-        }
-        try {
-          const res = await fetch('/api/set-key', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ apiKey: key })
-          });
-          const data = await res.json();
-          if (data.success) {
-            window.detectiveAudio.playBadgeUnlock();
-            this.serverGeminiKeyInput.value = '';
-            await this.updateModelStatusDisplay();
-            alert('🎉 Primary Gemini API Key saved to server .env successfully!');
-            this.closeSettingsModal();
-          } else {
-            alert('Error saving key: ' + data.error);
-          }
-        } catch (e) {
-          alert('Could not reach backend server: ' + e.message);
-        }
       });
     }
 
@@ -785,7 +753,7 @@ class SnackDetectiveApp {
     // 1. Update Server Key Status Badge
     if (this.serverKeyBadge) {
       if (status.hasServerKey) {
-        this.serverKeyBadge.textContent = 'Active (.env)';
+        this.serverKeyBadge.textContent = 'Active';
         this.serverKeyBadge.style.background = '#DCFCE7';
         this.serverKeyBadge.style.color = '#166534';
       } else {
@@ -817,15 +785,15 @@ class SnackDetectiveApp {
     // 3. Overall Indicator Dot & Text
     if (hasByok) {
       if (this.modelStatusDot) this.modelStatusDot.className = 'status-dot green';
-      if (this.modelStatusText) this.modelStatusText.textContent = 'Status: 🟢 Active (Using Your BYOK Key)';
+      if (this.modelStatusText) this.modelStatusText.textContent = 'Status: 🟢 Active (Using Your Personal Key)';
       if (this.homeModelSummary) this.homeModelSummary.textContent = 'Gemini BYOK 🟢';
     } else if (status.hasServerKey) {
       if (this.modelStatusDot) this.modelStatusDot.className = 'status-dot green';
-      if (this.modelStatusText) this.modelStatusText.textContent = 'Status: 🟢 Active (Primary Server .env Key)';
+      if (this.modelStatusText) this.modelStatusText.textContent = 'Status: 🟢 Active (Primary Server Key)';
       if (this.homeModelSummary) this.homeModelSummary.textContent = 'Gemini Server 🟢';
     } else {
       if (this.modelStatusDot) this.modelStatusDot.className = 'status-dot yellow';
-      if (this.modelStatusText) this.modelStatusText.textContent = 'Status: 🟡 Gemini Key Needed in .env or Settings';
+      if (this.modelStatusText) this.modelStatusText.textContent = 'Status: 🟡 Gemini Key Needed (Use BYOK below)';
       if (this.homeModelSummary) this.homeModelSummary.textContent = 'Add Key in ⚙️';
     }
   }

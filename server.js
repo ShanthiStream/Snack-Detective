@@ -97,36 +97,7 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // API 2: Set / Update Gemini Key on Server (.env)
-  if (pathname === '/api/set-key' && req.method === 'POST') {
-    let body = '';
-    req.on('data', chunk => { body += chunk; });
-    req.on('end', () => {
-      try {
-        const { apiKey } = JSON.parse(body);
-        if (apiKey) {
-          const trimmed = apiKey.trim();
-          try {
-            fs.writeFileSync(ENV_FILE, `# Snack Detective Server-side Configuration\nGEMINI_API_KEY=${trimmed}\n`);
-          } catch (writeErr) {
-            console.warn('Could not write to local .env (read-only environment):', writeErr.message);
-          }
-          process.env.GEMINI_API_KEY = trimmed;
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ success: true, message: 'Gemini key updated successfully!' }));
-        } else {
-          res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'API key is required' }));
-        }
-      } catch (err) {
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: err.message }));
-      }
-    });
-    return;
-  }
-
-  // API 3: Detect Snack via Gemini Vision (Primary Server Key or BYOK)
+  // API 2: Detect Snack via Gemini Vision (Primary Server Key or BYOK)
   if (pathname === '/api/detect-snack' && req.method === 'POST') {
     let body = '';
     req.on('data', chunk => { body += chunk; });
