@@ -1,13 +1,17 @@
 {
   "name": "snack-detective",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Snack Detective By Devdarsh - Kid-Friendly AI Food Classifier",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js",
+    "dev": "node server.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs"
+  "keywords": [
+    "ai",
+    "kids",
+    "gemini",
+    "vision"
+  ],
+  "author": "Devdarsh",
+  "license": "ISC"
 }

@@ -1,41 +1,16 @@
-// Snack Detective By Devdarsh - Server-side Gemini AI Vision Server
+// Snack Detective By Devdarsh - Server-side Gemini AI Vision Server (Local Development)
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const {
+  getServerApiKey,
+  getEffectiveApiKey,
+  callGeminiVision,
+  callGeminiPipChat
+} = require('./lib/gemini');
 
 const PORT = process.env.PORT || 8080;
 const ENV_FILE = path.join(__dirname, '.env');
-
-// Dynamically read .env on each request so user updates to .env take effect immediately
-function getServerApiKey() {
-  if (fs.existsSync(ENV_FILE)) {
-    try {
-      const content = fs.readFileSync(ENV_FILE, 'utf-8');
-      const lines = content.split('\n');
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (trimmed && !trimmed.startsWith('#') && trimmed.includes('=')) {
-          const [key, ...vals] = trimmed.split('=');
-          if (key.trim() === 'GEMINI_API_KEY') {
-            const val = vals.join('=').trim().replace(/^["']|["']$/g, '');
-            if (val) return val;
-          }
-        }
-      }
-    } catch (e) {
-      console.warn('Could not read .env file:', e.message);
-    }
-  }
-  return process.env.GEMINI_API_KEY || '';
-}
-
-// Return client BYOK key if provided, otherwise default to primary server-side key
-function getEffectiveApiKey(clientKey) {
-  if (clientKey && typeof clientKey === 'string' && clientKey.trim().length > 5) {
-    return clientKey.trim();
-  }
-  return getServerApiKey();
-}
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=UTF-8',
@@ -48,136 +23,6 @@ const MIME_TYPES = {
   '.svg': 'image/svg+xml',
   '.ico': 'image/x-icon'
 };
-
-// Resilient model sequence (falls over smoothly if one experiences high demand / 503)
-const VISION_MODELS = ['gemini-flash-latest', 'gemini-3-flash-preview', 'gemini-3.1-flash-lite-preview'];
-
-async function callGeminiVision(base64Image, clientKey = null) {
-  const apiKey = getEffectiveApiKey(clientKey);
-  if (!apiKey) {
-    throw new Error('No Gemini API key available! Please add GEMINI_API_KEY to your server .env file or enter a BYOK key in Settings.');
-  }
-
-  // Clean base64 image data
-  const cleanBase64 = base64Image.replace(/^data:image\/\w+;base64,/, '');
-
-  const prompt = `
-You are Detective Pip, a friendly cartoon fox detective for kids aged 8-11 in a school AI competition.
-Look at this image of a snack carefully.
-1. Identify EXACTLY what food is shown in this image.
-   - If it is an apple, call it an Apple (or specific variety like Crisp Red Apple, Tart Green Apple).
-   - If it is a banana, carrot, cookie, chips, donut, sandwich, broccoli, etc., name it accurately.
-   - DO NOT confuse apples with bananas or other fruits. Look closely at colors, shapes, and textures.
-2. Classify whether this is a "Healthy" snack or a "Treat".
-   - Healthy: fruits, vegetables, yogurt, nuts, seeds, whole grains.
-   - Treat: cookies, cakes, potato chips, candy, donuts, sodas, sugary processed snacks.
-3. Return ONLY valid JSON (no markdown fences, no extra text) with this exact format:
-{
-  "exactFood": "Name of the exact food identified (e.g. Crisp Red Apple)",
-  "verdict": "Healthy" or "Treat",
-  "confidence": 0.98,
-  "superpower": "Short 3-5 word nutrient superpower (e.g. Vitamin C & Pectin Fiber Shield 🍎)",
-  "pipSpeech": "1-2 friendly, enthusiastic sentences spoken by Detective Pip describing what he sees and why it fuels the body. Always encouraging, never shaming treats.",
-  "balanceTip": "A fun detective tip on how this food helps the body or how to enjoy it in healthy balance."
-}
-`.trim();
-
-  const payload = {
-    contents: [
-      {
-        parts: [
-          { text: prompt },
-          {
-            inline_data: {
-              mime_type: 'image/jpeg',
-              data: cleanBase64
-            }
-          }
-        ]
-      }
-    ],
-    generationConfig: {
-      temperature: 0.1,
-      maxOutputTokens: 600
-    }
-  };
-
-  let lastError = null;
-
-  for (const modelName of VISION_MODELS) {
-    try {
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      if (!response.ok) {
-        const errText = await response.text();
-        console.warn(`Model ${modelName} returned status ${response.status}: ${errText.substring(0, 150)}`);
-        lastError = new Error(`Gemini API Error (${response.status}): ${errText}`);
-        // If 503 (high demand) or 404, continue to next model
-        if (response.status === 503 || response.status === 404 || response.status === 429) {
-          continue;
-        } else {
-          throw lastError;
-        }
-      }
-
-      const json = await response.json();
-      const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!text) throw new Error('No response text generated by Gemini model.');
-
-      const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim();
-      return JSON.parse(cleanedText);
-    } catch (err) {
-      lastError = err;
-      console.warn(`Attempt with ${modelName} failed: ${err.message}`);
-    }
-  }
-
-  throw lastError || new Error('All vision models failed to respond.');
-}
-
-async function callGeminiPipChat(question, snackName, verdict, clientKey = null) {
-  const apiKey = getEffectiveApiKey(clientKey);
-  if (!apiKey) {
-    return `Aha! Detective Pip says: enjoying ${snackName} with plenty of fresh water and balance is your true detective superpower!`;
-  }
-
-  const prompt = `
-You are Detective Pip, a cheerful cartoon fox detective helping kids aged 8-11 learn about food and healthy choices.
-A child scanned their ${snackName} (which was classified as a ${verdict}) and asks you:
-"${question}"
-Answer in 1-2 friendly, energetic, kid-friendly sentences in character.
-Be scientifically helpful, encouraging, and never make them feel bad about eating treats.
-`.trim();
-
-  for (const modelName of VISION_MODELS) {
-    try {
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.6, maxOutputTokens: 250 }
-        })
-      });
-
-      if (response.ok) {
-        const json = await response.json();
-        const reply = json.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (reply) return reply.trim();
-      }
-    } catch (e) {
-      console.warn(`PipChat with ${modelName} failed:`, e.message);
-    }
-  }
-
-  return `Aha! Detective Pip says: enjoying your ${snackName} with good balance and plenty of water is pure detective brilliance! 🌟`;
-}
 
 const server = http.createServer(async (req, res) => {
   // Enable CORS
@@ -193,8 +38,6 @@ const server = http.createServer(async (req, res) => {
 
   const parsedUrl = new URL(req.url, `http://${req.headers.host}`);
   const pathname = parsedUrl.pathname;
-
-  // Extract client BYOK key if provided in headers
   const headerApiKey = req.headers['x-gemini-key'] || null;
 
   // API 1: Server Status
@@ -279,8 +122,9 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // Serve static files with no-cache headers for instant updates
-  let filePath = path.join(__dirname, pathname === '/' ? 'index.html' : pathname);
+  // Serve static files
+  let relativePath = pathname === '/' ? 'index.html' : pathname.replace(/^\//, '');
+  let filePath = path.join(__dirname, relativePath);
 
   fs.stat(filePath, (err, stats) => {
     if (err || !stats.isFile()) {
