@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Snack Detective By Devdarsh 🔍🥕🍪 - Kid-Friendly AI Food Classifier</title>
+  <meta name="description" content="A cheerful, kid-friendly AI web app by Devdarsh to classify snacks as Healthy or Treat using Google Gemini Multimodal Vision!">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#FFD233">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220%22%20%22100%22%20%22100%22><text y=%22.9em%22 font-size=%2290%22>🔍</text></svg>">
+  <script>
+    // Ensure all stale service workers and caches from previous iterations are wiped
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        for (let reg of registrations) reg.unregister();
+      });
+    }
+    if ('caches' in window) {
+      caches.keys().then(names => {
+        for (let name of names) caches.delete(name);
+      });
+    }
+  </script>
+</head>
+<body>
+
+  <div class="app-container">
+    <!-- Top Navigation Bar -->
+    <header class="top-nav">
+      <div class="logo-badge" id="nav-logo" title="Back to Home">
+        <span class="logo-icon">🔍</span>
+        <div class="logo-text">
+          <span class="logo-title">Snack Detective</span>
+          <span class="logo-subtitle">By Devdarsh</span>
+        </div>
+      </div>
+
+      <div class="nav-actions">
+        <!-- Sound FX Toggle -->
+        <button class="nav-btn" id="btn-sound-toggle" title="Toggle Sound Effects" aria-label="Toggle Sound">
+          🔊
+        </button>
+
+        <!-- Pip Voice Toggle -->
+        <button class="nav-btn" id="btn-voice-toggle" title="Toggle Detective Voice" aria-label="Toggle Voice">
+          🗣️
+        </button>
+
+        <!-- Settings / Model Setup -->
+        <button class="nav-btn" id="btn-settings-open" title="Model Setup & Settings" aria-label="Model Settings">
+          ⚙️
+        </button>
+
+        <!-- Stars Counter -->
+        <div class="nav-badge-pill" id="nav-stars" title="Detective Stars">
+          <span>⭐</span>
+          <span id="star-count-display">0</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- SCREEN 1: HOME -->
+    <main class="screen active" id="screen-home">
+      <!-- Mascot Hero Card -->
+      <section class="fun-card mascot-hero-card">
+        <div class="mascot-wrapper">
+          <span class="mascot-sparkle s1">✨</span>
+          <span class="mascot-sparkle s2">⭐</span>
+          <span class="mascot-sparkle s3">🔍</span>
+          <img src="assets/detective_pip.jpg" alt="Detective Pip the Friendly Cartoon Fox" class="mascot-img" id="home-mascot-img">
+        </div>
+
+        <div class="pip-speech-bubble" id="home-pip-speech">
+          "Hi Detective! I'm Pip! Point your camera at a snack, and let's discover if it's <strong>Super Healthy 🥕</strong> or a <strong>Yummy Treat 🍪</strong>!"
+        </div>
+
+        <button class="btn-primary-3d" id="btn-start-scanning">
+          <span>Start Scanning!</span>
+          <span>🔍</span>
+        </button>
+      </section>
+
+      <!-- Quick Hub Navigation -->
+      <section class="home-shortcuts-grid">
+        <div class="shortcut-card" id="shortcut-badges">
+          <span class="shortcut-icon">🎖️</span>
+          <span class="shortcut-title">My Badges</span>
+          <span class="shortcut-desc" id="home-badge-summary">0 / 7 Unlocked</span>
+        </div>
+
+        <div class="shortcut-card" id="shortcut-logbook">
+          <span class="shortcut-icon">📖</span>
+          <span class="shortcut-title">Logbook</span>
+          <span class="shortcut-desc" id="home-logbook-summary">0 Cases Solved</span>
+        </div>
+
+        <div class="shortcut-card" id="shortcut-demos">
+          <span class="shortcut-icon">🍎🍪</span>
+          <span class="shortcut-title">Try Demo Snacks</span>
+          <span class="shortcut-desc">Instant Test Food</span>
+        </div>
+
+        <div class="shortcut-card" id="shortcut-model">
+          <span class="shortcut-icon">🤖</span>
+          <span class="shortcut-title">AI Model</span>
+          <span class="shortcut-desc" id="home-model-summary">Smart AI Ready</span>
+        </div>
+      </section>
+
+      <!-- Daily Detective Mission -->
+      <section class="mission-banner">
+        <span class="mission-icon">🎯</span>
+        <div class="mission-details">
+          <h4>Daily Detective Mission</h4>
+          <p>Scan 2 Healthy snacks today to unlock the <strong>Veggie Hero</strong> badge!</p>
+        </div>
+      </section>
+    </main>
+
+    <!-- SCREEN 2: SCANNER & UPLOAD -->
+    <main class="screen" id="screen-scanner">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <button class="btn-outline-fun" id="btn-back-from-scanner">
+          <span>⬅️</span>
+          <span>Back</span>
+        </button>
+        <span style="font-weight: 700; color: var(--color-ink-light); font-size: 1.05rem;">
+          Detective Scanner
+        </span>
+      </div>
+
+      <!-- Viewfinder Container -->
+      <div class="scanner-viewport-wrapper" id="viewport-container">
+        <!-- Live Video Element -->
+        <video id="camera-video" playsinline autoplay muted></video>
+
+        <!-- Preview Image for Uploads & Demos -->
+        <img id="preview-image" alt="Captured Snack Preview">
+
+        <!-- Reticle Graphic -->
+        <div class="reticle-corner reticle-tl"></div>
+        <div class="reticle-corner reticle-tr"></div>
+        <div class="reticle-corner reticle-bl"></div>
+        <div class="reticle-corner reticle-br"></div>
+        <div class="reticle-center-badge">
+          <span>🔍</span>
+          <span>Place Snack Here</span>
+        </div>
+
+        <!-- Camera Switch Button -->
+        <button class="camera-flip-btn" id="btn-camera-flip" title="Flip Camera" aria-label="Switch Camera">
+          🔄
+        </button>
+
+        <!-- Scanning Animation Overlay -->
+        <div class="scanning-overlay" id="scanning-overlay">
+          <div class="laser-beam"></div>
+          <div class="scanning-magnifier-anim">🔍</div>
+          <div class="scanning-text-bubble" id="scanning-status-text">
+            Pip is analyzing clues...
+          </div>
+        </div>
+      </div>
+
+      <!-- Camera Action Controls -->
+      <div class="scanner-controls">
+        <!-- Hidden file input for photo upload -->
+        <input type="file" accept="image/*" id="file-input" style="display: none;">
+
+        <button class="btn-secondary-3d" id="btn-upload-photo" style="flex: 1;">
+          <span>📁</span>
+          <span>Upload</span>
+        </button>
+
+        <button class="btn-shutter" id="btn-capture-shutter" title="Take Photo & Scan" aria-label="Snap Photo">
+        </button>
+
+        <button class="btn-orange-3d" id="btn-quick-samples-toggle" style="flex: 1;">
+          <span>🍎</span>
+          <span>Samples</span>
+        </button>
+      </div>
+
+      <!-- Quick Demo Snacks Tray -->
+      <div class="demo-snack-tray" id="demo-snack-tray">
+        <div class="demo-tray-header">
+          <h4>
+            <span>🍎🍪</span>
+            <span>Science Fair Demo Snacks</span>
+          </h4>
+          <span class="demo-badge-tag">Instant Test</span>
+        </div>
+
+        <div class="demo-snack-chips">
+          <button class="snack-chip-btn" data-type="healthy" data-sample="apple_carrots" data-name="Apple & Carrots">
+            <span class="snack-chip-emoji">🍎🥕</span>
+            <span>Apple & Carrots</span>
+          </button>
+
+          <button class="snack-chip-btn" data-type="treat" data-sample="cookie" data-name="Chocolate Cookie">
+            <span class="snack-chip-emoji">🍪</span>
+            <span>Choc Cookie</span>
+          </button>
+
+          <button class="snack-chip-btn" data-type="healthy" data-sample="banana" data-name="Ripe Banana">
+            <span class="snack-chip-emoji">🍌</span>
+            <span>Fresh Banana</span>
+          </button>
+
+          <button class="snack-chip-btn" data-type="treat" data-sample="chips" data-name="Potato Chips">
+            <span class="snack-chip-emoji">🍟</span>
+            <span>Potato Chips</span>
+          </button>
+
+          <button class="snack-chip-btn" data-type="healthy" data-sample="broccoli" data-name="Crunchy Broccoli">
+            <span class="snack-chip-emoji">🥦</span>
+            <span>Green Veggies</span>
+          </button>
+
+          <button class="snack-chip-btn" data-type="treat" data-sample="donut" data-name="Glazed Donut">
+            <span class="snack-chip-emoji">🍩</span>
+            <span>Sweet Donut</span>
+          </button>
+        </div>
+      </div>
+    </main>
+
+    <!-- SCREEN 3: RESULT -->
+    <main class="screen" id="screen-result">
+      <div class="fun-card result-card" id="result-card-box">
+        <!-- Verdict Banner -->
+        <div class="verdict-stamp" id="result-verdict-stamp">
+          <span id="verdict-icon">🥕</span>
+          <span id="verdict-text">SUPER HEALTHY!</span>
+        </div>
+
+        <!-- Exact Food Identified by AI Vision -->
+        <div>
+          <div class="exact-food-badge" id="result-exact-food">
+            <span>🔎</span>
+            <span id="exact-food-title">Crisp Red Apple & Carrots</span>
+          </div>
+        </div>
+
+        <!-- Superpower Nutrient Badge -->
+        <div>
+          <div class="superpower-badge" id="result-superpower">
+            <span>⚡</span>
+            <span id="superpower-text">Superpower: Vitamin A Night-Vision Shield!</span>
+          </div>
+        </div>
+
+        <!-- Thumbnail Photo -->
+        <div class="result-thumbnail-container">
+          <img id="result-snack-img" src="" alt="Scanned Snack" class="result-thumbnail">
+        </div>
+
+        <!-- Mascot Speech Bubble Reaction -->
+        <div class="pip-speech-bubble" id="result-pip-speech" style="max-width: 95%;">
+          "Aha! Look at all those awesome vitamins! This gives your body super stamina!"
+        </div>
+
+        <!-- Confidence Detective Meter -->
+        <div class="confidence-box">
+          <div class="confidence-header">
+            <span>Detective Confidence</span>
+            <span id="confidence-percentage-label">95% Sure</span>
+          </div>
+          <div class="confidence-bar-track">
+            <div class="confidence-bar-fill" id="confidence-bar-fill" style="width: 95%;"></div>
+          </div>
+        </div>
+
+        <!-- Nutrition Clue Card -->
+        <div class="nutrition-clue-box">
+          <span class="nutrition-clue-icon">💡</span>
+          <div class="nutrition-clue-content">
+            <h4>Detective Clue of the Day</h4>
+            <p id="nutrition-clue-text">Carrots have Vitamin A which gives you super sharp night vision!</p>
+          </div>
+        </div>
+
+        <!-- Ask Detective Pip Interactive Drawer -->
+        <div class="ask-pip-box">
+          <div class="ask-pip-header">
+            <span>💬</span>
+            <span>Ask Detective Pip About This Snack!</span>
+          </div>
+          <div class="ask-pip-chips">
+            <button class="pip-chip-btn" data-q="Why is this snack good for my body?">Why is it healthy? 🧐</button>
+            <button class="pip-chip-btn" data-q="Can I eat this before playing sports?">Before sports? 🏃</button>
+            <button class="pip-chip-btn" data-q="What should I pair with this snack?">What to pair with? 🥛</button>
+          </div>
+          <div class="ask-pip-input-row">
+            <input type="text" id="pip-custom-question" class="pip-input" placeholder="Ask Pip a question about this snack...">
+            <button class="btn-secondary-3d" id="btn-pip-ask-send" style="padding: 10px 16px; font-size: 0.95rem;">Ask 🚀</button>
+          </div>
+          <div class="pip-answer-bubble" id="pip-answer-display" style="display: none;">
+            <span class="pip-answer-icon">🦊</span>
+            <div id="pip-answer-text">Pip is analyzing...</div>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="result-actions">
+          <button class="btn-primary-3d" id="btn-scan-again">
+            <span>Scan Another Snack</span>
+            <span>🔍</span>
+          </button>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <button class="btn-secondary-3d" id="btn-view-badges-from-result">
+              <span>🎖️ Badges</span>
+            </button>
+            <button class="btn-outline-fun" id="btn-home-from-result">
+              <span>🏠 Home</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- SCREEN 4: BADGES -->
+    <main class="screen" id="screen-badges">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+        <button class="btn-outline-fun" id="btn-back-from-badges">
+          <span>⬅️</span>
+          <span>Back</span>
+        </button>
+        <span style="font-weight: 700; color: var(--color-ink-light); font-size: 1.05rem;">
+          Detective Badges
+        </span>
+      </div>
+
+      <!-- Stats Header -->
+      <section class="badges-stats-header">
+        <div class="badge-stat-item">
+          <span class="badge-stat-val" id="badge-stat-stars">0</span>
+          <span class="badge-stat-lbl">⭐ Stars Earned</span>
+        </div>
+        <div class="badge-stat-item">
+          <span class="badge-stat-val" id="badge-stat-streak">0</span>
+          <span class="badge-stat-lbl">🔥 Healthy Streak</span>
+        </div>
+        <div class="badge-stat-item">
+          <span class="badge-stat-val" id="badge-stat-unlocked">0/7</span>
+          <span class="badge-stat-lbl">🎖️ Badges Won</span>
+        </div>
+      </section>
+
+      <!-- Badges Grid -->
+      <section class="badges-grid" id="badges-grid-container">
+        <!-- Rendered dynamically by app.js -->
+      </section>
+    </main>
+
+    <!-- SCREEN 5: LOGBOOK (HISTORY) -->
+    <main class="screen" id="screen-logbook">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+        <button class="btn-outline-fun" id="btn-back-from-logbook">
+          <span>⬅️</span>
+          <span>Back</span>
+        </button>
+        <span style="font-weight: 700; color: var(--color-ink-light); font-size: 1.05rem;">
+          Snack Detective Logbook
+        </span>
+        <button class="btn-outline-fun" id="btn-clear-logbook" style="padding: 8px 12px; font-size: 0.85rem;" title="Clear Log">
+          🗑️ Clear
+        </button>
+      </div>
+
+      <div class="logbook-list" id="logbook-list-container">
+        <!-- Rendered dynamically by app.js -->
+      </div>
+    </main>
+
+  </div><!-- /app-container -->
+
+  <!-- SETTINGS MODAL (PRIMARY SERVER KEY + BYOK) -->
+  <div class="modal-overlay" id="modal-settings">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">
+          <span>⚙️</span>
+          <span>AI Vision Settings</span>
+        </h3>
+        <button class="modal-close-btn" id="btn-settings-close">&times;</button>
+      </div>
+
+      <!-- Current Server Status -->
+      <div class="status-indicator" style="margin-bottom: 18px;">
+        <div class="status-dot green" id="model-status-dot"></div>
+        <span id="model-status-text">Checking Gemini Vision status...</span>
+      </div>
+
+      <!-- Primary Server Key Info Card -->
+      <div style="background: #F0FDF4; border: 2px solid #86EFAC; border-radius: 14px; padding: 14px; margin-bottom: 16px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+          <h4 style="color: #166534; font-size: 1rem; margin: 0; display: flex; align-items: center; gap: 6px;">
+            <span>🖥️</span>
+            <span>Primary Server Key (.env)</span>
+          </h4>
+          <span id="server-key-badge" style="background: #DCFCE7; color: #166534; font-weight: 700; font-size: 0.8rem; padding: 3px 8px; border-radius: 12px;">Active</span>
+        </div>
+        <p style="font-size: 0.84rem; color: #14532D; margin: 0; line-height: 1.4;">
+          The server uses the <strong>Google Gemini Multimodal Vision API</strong> key configured in <code>.env</code>. Kids get instant, highly accurate snack recognition without needing their own key!
+        </p>
+      </div>
+
+      <!-- BYOK (Bring Your Own Key) Card -->
+      <div class="form-group" style="background: #FEF9C3; border: 2px solid #FDE047; border-radius: 14px; padding: 14px; margin-bottom: 16px;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+          <h4 style="color: #854D0E; font-size: 0.95rem; margin: 0; display: flex; align-items: center; gap: 6px;">
+            <span>🔑</span>
+            <span>Bring Your Own Key (BYOK)</span>
+          </h4>
+          <span id="byok-status-badge" style="background: #FEF08A; color: #854D0E; font-size: 0.78rem; font-weight: 700; padding: 2px 7px; border-radius: 10px;">Using Server Key</span>
+        </div>
+        <p style="font-size: 0.82rem; color: #713F12; margin-bottom: 10px; line-height: 1.4;">
+          If you want to use your own personal Gemini API key, enter it below. Leave blank to stick with the primary server key.
+        </p>
+        <input 
+          type="password" 
+          id="byok-api-key" 
+          class="form-input" 
+          placeholder="Paste your personal Gemini API key (optional)"
+        >
+        <div style="display: flex; gap: 8px; margin-top: 10px;">
+          <button class="btn-primary-3d" id="btn-save-byok-key" style="font-size: 0.92rem; padding: 9px 14px; flex: 1;">
+            <span>Save My Key (BYOK)</span>
+          </button>
+          <button class="btn-outline-fun" id="btn-clear-byok-key" style="font-size: 0.92rem; padding: 9px 12px;">
+            <span>Use Server Key</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Update Primary Server Key in .env -->
+      <div class="form-group" style="border: 2px dashed #CBD5E1; border-radius: 14px; padding: 14px;">
+        <h4 style="color: #475569; font-size: 0.9rem; margin: 0 0 6px 0;">🔧 Update Server-Side .env Key</h4>
+        <input 
+          type="password" 
+          id="server-gemini-key" 
+          class="form-input" 
+          placeholder="Enter new key to write to server .env"
+        >
+        <button class="btn-outline-fun" id="btn-save-server-key" style="margin-top: 8px; width: 100%; font-size: 0.92rem; padding: 9px 14px;">
+          <span>Update .env on Server 💾</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Application Logic Modules -->
+  <script src="js/audio.js"></script>
+  <script src="js/confetti.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/model.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

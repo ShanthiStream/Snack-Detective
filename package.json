@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Snack Detective By Devdarsh - Kid-Friendly AI Food Classifier",
   "scripts": {
+    "build": "node scripts/build.js",
     "start": "node server.js",
     "dev": "node server.js"
   },

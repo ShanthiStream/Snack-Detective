@@ -1,0 +1,17 @@
+{
+  "name": "Snack Detective By Devdarsh - AI Food Sleuth",
+  "short_name": "Snack Detective",
+  "description": "Kid-friendly AI food classifier for healthy snacks and treats",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#FFFDF5",
+  "theme_color": "#FFD233",
+  "icons": [
+    {
+      "src": "assets/detective_pip.jpg",
+      "sizes": "192x192 512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}
