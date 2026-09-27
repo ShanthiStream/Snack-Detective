@@ -1,4 +1,4 @@
-// Snack Detective By Devdarsh - Server-side Gemini AI Vision Server
+// Snack Detective AI By Devdarsh - Gemini AI Vision Server
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -92,7 +92,7 @@ const server = http.createServer(async (req, res) => {
     res.end(JSON.stringify({
       hasServerKey: Boolean(serverKey && serverKey.length > 5),
       serverKeyPreview: serverKey ? `${serverKey.substring(0, 6)}...` : null,
-      model: 'Google Gemini Multimodal Vision (Primary Server + BYOK)'
+      model: 'AI Vision Engine'
     }));
     return;
   }
@@ -177,8 +177,8 @@ module.exports = server;
 if (require.main === module) {
   server.listen(PORT, () => {
     const key = getServerApiKey();
-    console.log(`🔍 Snack Detective server running at http://localhost:${PORT}`);
-    console.log(`🤖 Primary Server-Side Gemini Key: ${key ? 'Configured (' + key.substring(0, 6) + '...)' : 'Not set in .env'}`);
-    console.log(`✨ BYOK (Bring Your Own Key) Support: Enabled via Settings & Headers`);
+    console.log(`🔍 Snack Detective AI By Devdarsh running at http://localhost:${PORT}`);
+    console.log(`🤖 AI Vision API Key: ${key ? 'Configured (' + key.substring(0, 6) + '...)' : 'Not set in .env'}`);
+    console.log(`✨ BYOK Support: Enabled via Settings & Headers`);
   });
 }

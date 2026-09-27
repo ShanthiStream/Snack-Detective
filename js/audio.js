@@ -144,6 +144,29 @@ class DetectiveAudio {
     });
   }
 
+  // Playful boing sound when a non-food item is scanned
+  playOopsSound() {
+    if (!this.soundEnabled || !this.ctx) return;
+    this.resumeContext();
+
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(360, now);
+    osc.frequency.exponentialRampToValueAtTime(180, now + 0.3);
+
+    gain.gain.setValueAtTime(0.24, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 0.3);
+  }
+
   // Triumphant badge unlock fanfare
   playBadgeUnlock() {
     if (!this.soundEnabled || !this.ctx) return;

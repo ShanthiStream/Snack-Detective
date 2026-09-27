@@ -1,6 +1,6 @@
-# 🔍 Snack Detective By Devdarsh — Kid-Friendly AI Food Sleuth 🥕🍪
+# 🔍 Snack Detective AI By Devdarsh — Kid-Friendly AI Food Sleuth 🥕🍪
 
-**Snack Detective By Devdarsh** is a vibrant, multi-platform web app built for Grade 3–5 students participating in an AI competition or Science Fair. Kids can point their camera at any snack or upload a photo, and the Google Gemini Multimodal Vision AI classifies it as **"Super Healthy 🥕"** or a **"Yummy Treat 🍪"**, identifying the exact food, its nutrient superpower, and custom encouraging dialogue spoken aloud by Detective Pip!
+**Snack Detective AI By Devdarsh** is a vibrant, multi-platform web app created by Devdarsh (Grade 3, Bahrain Indian School). Kids can point their camera at any snack or upload a photo, and the AI classifies it as **"Super Healthy 🥕"** or a **"Yummy Treat 🍪"**, identifying the exact food, its nutrient superpower, and custom encouraging dialogue spoken aloud by Detective Pip! Non-food items (like stationery, toys, gadgets) are detected with fun safety reminders without snack suggestions.
 
 ---
 
@@ -70,4 +70,4 @@ Open [http://localhost:8080](http://localhost:8080) on your computer, tablet, or
 ---
 
 ## 📄 License & Attribution
-Created with 💛 for young AI explorers by **Devdarsh**.
+Created with 💛 for young AI explorers by **Devdarsh, Grade 3, Bahrain Indian School**.

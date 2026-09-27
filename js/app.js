@@ -39,6 +39,11 @@ class SnackDetectiveApp {
         src: this.createFoodSvgDataUri('🍩', '#F8BBD0', '#E91E63'),
         name: 'Glazed Frosted Donut',
         type: 'treat'
+      },
+      pencil: {
+        src: this.createFoodSvgDataUri('✏️', '#E2E8F0', '#64748B'),
+        name: 'School Pencil',
+        type: 'not-food'
       }
     };
 
@@ -108,12 +113,14 @@ class SnackDetectiveApp {
     this.resultPipSpeech = document.getElementById('result-pip-speech');
     this.confidencePercentageLabel = document.getElementById('confidence-percentage-label');
     this.confidenceBarFill = document.getElementById('confidence-bar-fill');
+    this.nutritionClueTitle = document.getElementById('nutrition-clue-title');
     this.nutritionClueText = document.getElementById('nutrition-clue-text');
     this.btnScanAgain = document.getElementById('btn-scan-again');
     this.btnViewBadgesFromResult = document.getElementById('btn-view-badges-from-result');
     this.btnHomeFromResult = document.getElementById('btn-home-from-result');
 
     // Ask Pip Interactive Drawer
+    this.askPipChips = document.getElementById('ask-pip-chips');
     this.pipCustomQuestion = document.getElementById('pip-custom-question');
     this.btnPipAskSend = document.getElementById('btn-pip-ask-send');
     this.pipAnswerDisplay = document.getElementById('pip-answer-display');
@@ -495,7 +502,7 @@ class SnackDetectiveApp {
 
     // 1. Show scanning overlay
     this.scanningOverlay.classList.add('active');
-    this.scanningStatusText.textContent = 'Pip is analyzing clues with Gemini Multimodal Vision...';
+    this.scanningStatusText.textContent = 'Pip is inspecting the clues with AI Vision...';
 
     // 2. Play scanning sound
     window.detectiveAudio.playScan();
@@ -509,21 +516,25 @@ class SnackDetectiveApp {
     // 5. Hide scanning overlay
     this.scanningOverlay.classList.remove('active');
 
-    // 6. Record to storage
-    const outcome = window.detectiveStorage.addScanRecord({
-      verdict: result.verdict,
-      confidence: result.confidence,
-      snackName: result.exactFood || snackName,
-      thumbnail: photoUrl,
-      tip: result.tip
-    });
+    // 6. Record to storage if and only if it is real edible food
+    let outcome = { stats: window.detectiveStorage.getStats(), newlyUnlockedBadges: [] };
+    if (result.isFood !== false && result.verdict !== 'Not Food') {
+      outcome = window.detectiveStorage.addScanRecord({
+        verdict: result.verdict,
+        confidence: result.confidence,
+        snackName: result.exactFood || snackName,
+        thumbnail: photoUrl,
+        tip: result.tip
+      });
+    }
 
     // 7. Dispatch Vercel Analytics event
     if (window.va) {
       window.va('event', {
         name: 'snack_scan',
         verdict: result.verdict,
-        food: result.exactFood || snackName
+        food: result.exactFood || snackName,
+        isFood: result.isFood !== false && result.verdict !== 'Not Food'
       });
     }
 
@@ -532,17 +543,21 @@ class SnackDetectiveApp {
   }
 
   renderResultScreen(result, outcome, snackName, photoUrl = null) {
-    const isHealthy = result.verdict === 'Healthy';
+    const isNotFood = result.isFood === false || result.verdict === 'Not Food';
+    const isHealthy = !isNotFood && result.verdict === 'Healthy';
     const percent = Math.round(result.confidence * 100);
 
-    // Update Result Card Theme
-    this.resultCardBox.className = 'fun-card result-card ' + (isHealthy ? 'verdict-healthy' : 'verdict-treat');
-
-    // Verdict Stamp
-    if (isHealthy) {
+    // Update Result Card Theme & Verdict Stamp
+    if (isNotFood) {
+      this.resultCardBox.className = 'fun-card result-card verdict-not-food';
+      this.verdictIcon.textContent = '🛑';
+      this.verdictText.textContent = 'NOT A FOOD!';
+    } else if (isHealthy) {
+      this.resultCardBox.className = 'fun-card result-card verdict-healthy';
       this.verdictIcon.textContent = '🥕';
       this.verdictText.textContent = 'SUPER HEALTHY!';
     } else {
+      this.resultCardBox.className = 'fun-card result-card verdict-treat';
       this.verdictIcon.textContent = '🍪';
       this.verdictText.textContent = 'YUMMY TREAT!';
     }
@@ -558,12 +573,18 @@ class SnackDetectiveApp {
     this.currentSnackName = result.exactFood || snackName;
     this.currentVerdict = result.verdict;
 
-    // Exact Food Name & Superpower Nutrient
+    // Exact Food / Item Name
     if (this.exactFoodTitle) {
       this.exactFoodTitle.textContent = this.currentSnackName;
     }
+
+    // Superpower Badge (or Not Edible warning)
     if (this.superpowerText) {
-      this.superpowerText.textContent = result.superpower || (isHealthy ? 'Superpower: Vitamin & Fiber Shield ⚡' : 'Superpower: Quick Energy Spark ✨');
+      if (isNotFood) {
+        this.superpowerText.textContent = result.superpower || 'Item is Not Edible! 🛑';
+      } else {
+        this.superpowerText.textContent = result.superpower || (isHealthy ? 'Superpower: Vitamin & Fiber Shield ⚡' : 'Superpower: Quick Energy Spark ✨');
+      }
     }
 
     // Reset Ask Pip Drawer
@@ -572,16 +593,50 @@ class SnackDetectiveApp {
     }
     if (this.pipCustomQuestion) {
       this.pipCustomQuestion.value = '';
+      this.pipCustomQuestion.placeholder = isNotFood 
+        ? `Ask Pip why this isn't food...` 
+        : `Ask Pip a question about this snack...`;
+    }
+
+    // Update Ask Pip question chips dynamically
+    if (this.askPipChips) {
+      if (isNotFood) {
+        this.askPipChips.innerHTML = `
+          <button class="pip-chip-btn" data-q="Can I eat this item?">Can I eat this? 🤔</button>
+          <button class="pip-chip-btn" data-q="Why is this not a snack?">Why not a snack? 🛑</button>
+          <button class="pip-chip-btn" data-q="What healthy snack should I eat instead?">What snack instead? 🍎</button>
+        `;
+      } else {
+        this.askPipChips.innerHTML = `
+          <button class="pip-chip-btn" data-q="Why is this snack good for my body?">Why is it healthy? 🧐</button>
+          <button class="pip-chip-btn" data-q="Can I eat this before playing sports?">Before sports? 🏃</button>
+          <button class="pip-chip-btn" data-q="What should I pair with this snack?">What to pair with? 🥛</button>
+        `;
+      }
+      this.askPipChips.querySelectorAll('.pip-chip-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          this.handleAskPip(btn.dataset.q);
+        });
+      });
     }
 
     // Pip Reaction Speech & Audio
-    const speechHtml = result.pipSpeech || (isHealthy 
-      ? `<strong>Aha!</strong> Super choice, Detective! This <em>${this.currentSnackName}</em> is packed with fresh nutrients to fuel your brain! 🚀✨`
-      : `<strong>Mmm, delicious!</strong> Treats like <em>${this.currentSnackName}</em> are super yummy fun! Remember the Detective Rule: balance it with some fresh water or fruit later! 🌟🍪`);
+    let speechHtml = result.pipSpeech;
+    if (!speechHtml) {
+      if (isNotFood) {
+        speechHtml = `<strong>Hold on, Detective!</strong> That's not food — that looks like <em>${this.currentSnackName}</em>! Detective Pip only investigates real snacks to eat! 🛑🔍`;
+      } else if (isHealthy) {
+        speechHtml = `<strong>Aha!</strong> Super choice, Detective! This <em>${this.currentSnackName}</em> is packed with fresh nutrients to fuel your brain! 🚀✨`;
+      } else {
+        speechHtml = `<strong>Mmm, delicious!</strong> Treats like <em>${this.currentSnackName}</em> are super yummy fun! Remember the Detective Rule: balance it with some fresh water or fruit later! 🌟🍪`;
+      }
+    }
 
     this.resultPipSpeech.innerHTML = speechHtml;
 
-    if (isHealthy) {
+    if (isNotFood) {
+      window.detectiveAudio.playOopsSound();
+    } else if (isHealthy) {
       window.detectiveAudio.playHealthyFanfare();
       window.confettiCannon.fire(80);
     } else {
@@ -592,12 +647,17 @@ class SnackDetectiveApp {
     const spokenText = speechHtml.replace(/<[^>]*>?/gm, '');
     window.detectiveAudio.speak(spokenText);
 
-    // Confidence
-    this.confidencePercentageLabel.textContent = `${percent}% Sure (${result.modelSource || 'Server Gemini'})`;
+    // Confidence - strictly kid-friendly, no technical jargon or server mentions
+    this.confidencePercentageLabel.textContent = `${percent}% Sure`;
     this.confidenceBarFill.style.width = `${percent}%`;
 
-    // Tip
-    this.nutritionClueText.textContent = result.tip;
+    // Clue / Tip Card
+    if (this.nutritionClueTitle) {
+      this.nutritionClueTitle.textContent = isNotFood ? 'Detective Safety Tip' : 'Detective Clue of the Day';
+    }
+    this.nutritionClueText.textContent = result.tip || (isNotFood 
+      ? 'Detective Tip: Objects and toys are not for eating! Try scanning real snacks like fruits or veggies.' 
+      : 'Remember to stay hydrated and balance your snacks!');
 
     // Newly unlocked badges fanfare!
     if (outcome.newlyUnlockedBadges && outcome.newlyUnlockedBadges.length > 0) {
@@ -636,7 +696,9 @@ class SnackDetectiveApp {
       }
       window.detectiveAudio.speak(answer);
     } catch (e) {
-      const fallback = 'Aha! Pip says: remember that balance is a detective\'s greatest superpower!';
+      const fallback = this.currentVerdict === 'Not Food'
+        ? `Aha! Detective Pip says: remember that ${this.currentSnackName || 'this item'} is not food! We only eat healthy snacks and treats!`
+        : 'Aha! Pip says: remember that balance is a detective\'s greatest superpower!';
       if (this.pipAnswerText) this.pipAnswerText.textContent = fallback;
       window.detectiveAudio.speak(fallback);
     }
@@ -736,13 +798,7 @@ class SnackDetectiveApp {
 
     const hasByok = window.snackClassifier.hasByokKey();
     if (this.homeModelSummary) {
-      if (hasByok) {
-        this.homeModelSummary.textContent = 'Gemini BYOK 🟢';
-      } else if (window.snackClassifier.hasServerKey) {
-        this.homeModelSummary.textContent = 'Gemini Server 🟢';
-      } else {
-        this.homeModelSummary.textContent = 'AI Vision Ready';
-      }
+      this.homeModelSummary.textContent = 'AI Ready 🟢';
     }
   }
 
@@ -797,15 +853,15 @@ class SnackDetectiveApp {
     // 3. Overall Indicator Dot & Text
     if (hasByok) {
       if (this.modelStatusDot) this.modelStatusDot.className = 'status-dot green';
-      if (this.modelStatusText) this.modelStatusText.textContent = 'Status: 🟢 Active (Using Your Personal Key)';
-      if (this.homeModelSummary) this.homeModelSummary.textContent = 'Gemini BYOK 🟢';
+      if (this.modelStatusText) this.modelStatusText.textContent = 'Status: 🟢 AI Vision Active';
+      if (this.homeModelSummary) this.homeModelSummary.textContent = 'AI Ready 🟢';
     } else if (status.hasServerKey) {
       if (this.modelStatusDot) this.modelStatusDot.className = 'status-dot green';
-      if (this.modelStatusText) this.modelStatusText.textContent = 'Status: 🟢 Active (Primary Server Key)';
-      if (this.homeModelSummary) this.homeModelSummary.textContent = 'Gemini Server 🟢';
+      if (this.modelStatusText) this.modelStatusText.textContent = 'Status: 🟢 AI Vision Active';
+      if (this.homeModelSummary) this.homeModelSummary.textContent = 'AI Ready 🟢';
     } else {
       if (this.modelStatusDot) this.modelStatusDot.className = 'status-dot yellow';
-      if (this.modelStatusText) this.modelStatusText.textContent = 'Status: 🟡 Gemini Key Needed (Use BYOK below)';
+      if (this.modelStatusText) this.modelStatusText.textContent = 'Status: 🟡 AI Key Needed (Add below in ⚙️)';
       if (this.homeModelSummary) this.homeModelSummary.textContent = 'Add Key in ⚙️';
     }
   }

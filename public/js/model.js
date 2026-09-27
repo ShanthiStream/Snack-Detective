@@ -94,18 +94,23 @@ class SnackClassifier {
         const data = await response.json();
         if (data.success && data.result) {
           const res = data.result;
-          const isByok = this.hasByokKey();
+          const isFood = res.isFood !== false && res.verdict !== 'Not Food';
           return {
-            verdict: res.verdict || 'Healthy',
+            isFood: isFood,
+            verdict: isFood ? (res.verdict || 'Healthy') : 'Not Food',
             confidence: res.confidence || 0.98,
-            exactFood: res.exactFood || snackName || 'Scanned Snack',
-            superpower: res.superpower || 'Nutrient Power ⚡',
-            pipSpeech: res.pipSpeech || `Aha! Detective Pip inspected your snack!`,
-            tip: res.balanceTip || `Remember to stay hydrated and balance your snacks!`,
-            modelSource: isByok ? 'Gemini Vision (BYOK Key)' : 'Gemini Vision (Primary Server Key)'
+            exactFood: res.exactFood || snackName || (isFood ? 'Scanned Snack' : 'Non-Food Item'),
+            superpower: res.superpower || (isFood ? 'Nutrient Power ⚡' : 'Not Edible! 🛑'),
+            pipSpeech: res.pipSpeech || (isFood 
+              ? `Aha! Detective Pip inspected your snack!` 
+              : `Hold on, Detective! That's not food! Detective Pip only investigates real, edible snacks! 🛑`),
+            tip: res.balanceTip || (isFood 
+              ? `Remember to stay hydrated and balance your snacks!` 
+              : `Detective Safety Tip: Toys and school supplies are not snacks! Only eat real, clean food.`),
+            modelSource: 'AI Vision'
           };
         } else if (data.error) {
-          console.error('Gemini Detection API error:', data.error);
+          console.error('AI Detection API error:', data.error);
           alert('🔍 Detective Pip Note:\n' + data.error);
         }
       }
@@ -145,34 +150,52 @@ class SnackClassifier {
       console.warn('Server ask-pip error:', e);
     }
 
+    if (verdict === 'Not Food') {
+      return `Aha! Detective Pip says: remember, ${currentSnack} is not a food! We only investigate tasty snacks you can safely eat! 🍎🥕`;
+    }
     return `Aha! Detective Pip says: enjoying your ${currentSnack} with plenty of water and fresh balance is your ultimate detective superpower! 🌟`;
   }
 
   // Graceful fallback if network drops
   fallbackAnalysis(imageElement, hint, snackName) {
+    if (hint === 'not-food') {
+      return {
+        isFood: false,
+        verdict: 'Not Food',
+        confidence: 0.95,
+        exactFood: snackName || 'School Pencil / Toy',
+        superpower: 'Not Edible! 🛑',
+        pipSpeech: `Wait a minute, Detective! That's not a food item! Detective Pip only gives clues for yummy food to eat! 🔍🛑`,
+        tip: 'Detective Tip: Toys and pencils are for fun and learning, not for eating! Try scanning real snacks like fruits or veggies.',
+        modelSource: 'Smart Classifier'
+      };
+    }
+
     const isTreat = hint === 'treat' || (snackName && (snackName.toLowerCase().includes('cookie') || snackName.toLowerCase().includes('chips') || snackName.toLowerCase().includes('donut')));
     const name = snackName || (isTreat ? 'Delicious Treat' : 'Fresh Healthy Snack');
 
     if (isTreat) {
       return {
+        isFood: true,
         verdict: 'Treat',
         confidence: 0.95,
         exactFood: name,
         superpower: 'Quick Energy Spark ✨',
         pipSpeech: `Mmm! That looks like a tasty treat! Remember Detective Rule #1: balance treats with fresh water and fruit! 🌟🍪`,
         tip: 'Enjoy your treat in moderation, and fuel your next detective mission with crunchy veggies!',
-        modelSource: 'Offline Smart Classifier'
+        modelSource: 'Smart Classifier'
       };
     }
 
     return {
+      isFood: true,
       verdict: 'Healthy',
       confidence: 0.96,
       exactFood: name,
       superpower: 'Vitamins & Fiber Stamina 🍎',
       pipSpeech: `Aha! Detective Pip spotted a wholesome, healthy snack! Packed with nutrients to fuel your detective brain! 🚀✨`,
       tip: 'Fresh healthy snacks give you long-lasting stamina for school, sports, and play!',
-      modelSource: 'Offline Smart Classifier'
+      modelSource: 'Smart Classifier'
     };
   }
 }

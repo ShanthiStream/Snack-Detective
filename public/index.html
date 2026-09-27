@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Snack Detective By Devdarsh 🔍🥕🍪 - Kid-Friendly AI Food Classifier</title>
-  <meta name="description" content="A cheerful, kid-friendly AI web app by Devdarsh to classify snacks as Healthy or Treat using Google Gemini Multimodal Vision!">
+  <title>Snack Detective AI By Devdarsh 🔍🥕🍪</title>
+  <meta name="description" content="A cheerful, kid-friendly AI web app by Devdarsh to classify snacks as Healthy or Treat using Smart AI Vision!">
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#FFD233">
   <link rel="stylesheet" href="css/style.css">
@@ -35,10 +35,13 @@
     <!-- Top Navigation Bar -->
     <header class="top-nav">
       <div class="logo-badge" id="nav-logo" title="Back to Home">
-        <span class="logo-icon">🔍</span>
+        <div class="logo-icon-glass">
+          <span class="logo-icon">🔍</span>
+        </div>
         <div class="logo-text">
-          <span class="logo-title">Snack Detective</span>
-          <span class="logo-subtitle">By Devdarsh</span>
+          <span class="logo-line-1">Snack Detective</span>
+          <span class="logo-line-2"><span class="ai-glass-pill">AI</span></span>
+          <span class="logo-line-3">By Devdarsh</span>
         </div>
       </div>
 
@@ -108,9 +111,9 @@
         </div>
 
         <div class="shortcut-card" id="shortcut-model">
-          <span class="shortcut-icon">🤖</span>
-          <span class="shortcut-title">AI Model</span>
-          <span class="shortcut-desc" id="home-model-summary">Smart AI Ready</span>
+          <span class="shortcut-icon">ℹ️</span>
+          <span class="shortcut-title">About & Settings</span>
+          <span class="shortcut-desc" id="home-model-summary">AI Ready 🟢</span>
         </div>
       </section>
 
@@ -228,6 +231,11 @@
             <span class="snack-chip-emoji">🍩</span>
             <span>Sweet Donut</span>
           </button>
+
+          <button class="snack-chip-btn" data-type="not-food" data-sample="pencil" data-name="School Pencil">
+            <span class="snack-chip-emoji">✏️</span>
+            <span>School Pencil</span>
+          </button>
         </div>
       </div>
     </main>
@@ -282,7 +290,7 @@
         <div class="nutrition-clue-box">
           <span class="nutrition-clue-icon">💡</span>
           <div class="nutrition-clue-content">
-            <h4>Detective Clue of the Day</h4>
+            <h4 id="nutrition-clue-title">Detective Clue of the Day</h4>
             <p id="nutrition-clue-text">Carrots have Vitamin A which gives you super sharp night vision!</p>
           </div>
         </div>
@@ -291,9 +299,9 @@
         <div class="ask-pip-box">
           <div class="ask-pip-header">
             <span>💬</span>
-            <span>Ask Detective Pip About This Snack!</span>
+            <span id="ask-pip-header-title">Ask Detective Pip About This Item!</span>
           </div>
-          <div class="ask-pip-chips">
+          <div class="ask-pip-chips" id="ask-pip-chips">
             <button class="pip-chip-btn" data-q="Why is this snack good for my body?">Why is it healthy? 🧐</button>
             <button class="pip-chip-btn" data-q="Can I eat this before playing sports?">Before sports? 🏃</button>
             <button class="pip-chip-btn" data-q="What should I pair with this snack?">What to pair with? 🥛</button>
@@ -389,15 +397,41 @@
       <div class="modal-header">
         <h3 class="modal-title">
           <span>⚙️</span>
-          <span>AI Vision Settings</span>
+          <span>Detective Settings & About</span>
         </h3>
         <button class="modal-close-btn" id="btn-settings-close">&times;</button>
+      </div>
+
+      <!-- About Section -->
+      <div class="about-card" style="background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%); border: 2.5px solid #93C5FD; border-radius: 16px; padding: 16px; margin-bottom: 16px; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.08);">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+          <h4 style="color: #1E40AF; font-size: 1.05rem; margin: 0; display: flex; align-items: center; gap: 8px; font-weight: 800;">
+            <span style="font-size: 1.3rem;">ℹ️</span>
+            <span>About</span>
+          </h4>
+          <span style="background: #DBEAFE; color: #1D4ED8; font-weight: 700; font-size: 0.75rem; padding: 3px 8px; border-radius: 12px; border: 1px solid #BFDBFE;">School Project</span>
+        </div>
+        <div style="background: #FFFFFF; border-radius: 12px; padding: 14px; border: 1.5px solid #BFDBFE;">
+          <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
+            <div style="font-size: 2rem; background: #FEF3C7; width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #FCD34D; flex-shrink: 0;">
+              🕵️‍♂️
+            </div>
+            <div>
+              <div style="font-size: 1.05rem; font-weight: 800; color: #1E3A8A; line-height: 1.2;">Snack Detective By Devdarsh</div>
+              <div style="font-size: 0.9rem; font-weight: 700; color: #2563EB; margin-top: 3px;">Grade 3</div>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px; font-size: 0.9rem; font-weight: 700; color: #4B5563; padding-top: 8px; border-top: 1px dashed #E5E7EB;">
+            <span>🏫</span>
+            <span>Bahrain Indian School</span>
+          </div>
+        </div>
       </div>
 
       <!-- Current Server Status -->
       <div class="status-indicator" style="margin-bottom: 18px;">
         <div class="status-dot green" id="model-status-dot"></div>
-        <span id="model-status-text">Checking Gemini Vision status...</span>
+        <span id="model-status-text">Checking AI Detective status...</span>
       </div>
 
       <!-- Primary Server Key Info Card -->
@@ -410,7 +444,7 @@
           <span id="server-key-badge" style="background: #DCFCE7; color: #166534; font-weight: 700; font-size: 0.8rem; padding: 3px 8px; border-radius: 12px;">Active</span>
         </div>
         <p style="font-size: 0.84rem; color: #14532D; margin: 0; line-height: 1.4;">
-          The server is connected to the <strong>Google Gemini Multimodal Vision API</strong>. Kids get instant, highly accurate snack recognition without needing their own key!
+          Connected to smart <strong>AI Vision</strong>. Kids get instant, highly accurate snack recognition without needing their own key!
         </p>
       </div>
 

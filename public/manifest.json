@@ -1,6 +1,6 @@
 {
-  "name": "Snack Detective By Devdarsh - AI Food Sleuth",
-  "short_name": "Snack Detective",
+  "name": "Snack Detective AI By Devdarsh",
+  "short_name": "Snack Detective AI",
   "description": "Kid-friendly AI food classifier for healthy snacks and treats",
   "start_url": "./index.html",
   "display": "standalone",
